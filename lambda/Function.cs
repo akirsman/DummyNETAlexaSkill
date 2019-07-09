@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using AlexaAPI;
 using AlexaAPI.Request;
 using AlexaAPI.Response;
-using System.IO;
 using System.Text.RegularExpressions;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
@@ -15,12 +14,10 @@ namespace sampleFactCsharp
 {
     public class Function
     {
-        private SkillResponse response = null;
-        private ILambdaContext context = null;
+        private SkillResponse _response = null;
+        private ILambdaContext _context = null;
         const string LOCALENAME = "locale";
         const string ESMX_Locale = "es-MX";
-
-        static Random rand = new Random();
 
         /// <summary>
         /// Application entry point
@@ -30,13 +27,14 @@ namespace sampleFactCsharp
         /// <returns></returns>
         public SkillResponse FunctionHandler(SkillRequest input, ILambdaContext ctx)
         {
-            context = ctx;
+            _context = ctx;
+            Log("Input object:" + JsonConvert.SerializeObject(input));
             try
             {
-                response = new SkillResponse();
-                response.Response = new ResponseBody();
-                response.Response.ShouldEndSession = false;
-                response.Version = AlexaConstants.AlexaVersion;
+                _response = new SkillResponse();
+                _response.Response = new ResponseBody();
+                _response.Response.ShouldEndSession = false;
+                _response.Version = AlexaConstants.AlexaVersion;
 
                 if (input.Request.Type.Equals(AlexaConstants.LaunchRequest))
                 {
@@ -46,51 +44,31 @@ namespace sampleFactCsharp
                         locale = ESMX_Locale;
                     }
 
-                    ProcessLaunchRequest(response.Response);
-                    response.SessionAttributes = new Dictionary<string, object>() {{LOCALENAME, locale}};
+                    ProcessLaunchRequest(_response.Response);
+                    _response.SessionAttributes = new Dictionary<string, object>() {{LOCALENAME, locale}};
                 }
                 else
                 {
                     if (input.Request.Type.Equals(AlexaConstants.IntentRequest))
                     {
-                       string locale = string.Empty;
-                       Dictionary <string, object> dictionary = input.Session.Attributes;
-                       if (dictionary != null)
-                       {
-                           if (dictionary.ContainsKey(LOCALENAME))
-                           {
-                               locale = (string) dictionary[LOCALENAME];
-                           }
-                       }
-               
-                       if (string.IsNullOrEmpty(locale))
-                       {
-                            locale = input.Request.Locale;
-                       }
-
-                       if (string.IsNullOrEmpty(locale))
-                       {
-                            locale = ESMX_Locale; 
-                       }
-
-                       response.SessionAttributes = new Dictionary<string, object>() {{LOCALENAME, locale}};
+                       _response.SessionAttributes = new Dictionary<string, object>() {{LOCALENAME, ESMX_Locale}};
                        if (IsDialogIntentRequest(input))
                        {
                             if (!IsDialogSequenceComplete(input))
                             { // delegate to Alexa until dialog is complete
                                 CreateDelegateResponse();
-                                return response;
+                                return _response;
                             }
                        }
 
-                       if (!ProcessDialogRequest(input, response))
+                       if (!ProcessDialogRequest(input, _response))
                        {
-                           response.Response.OutputSpeech = ProcessIntentRequest(input);
+                           _response.Response.OutputSpeech = ProcessIntentRequest(input);
                        }
                     }
                 }
-                Log(JsonConvert.SerializeObject(response));
-                return response;
+                Log(JsonConvert.SerializeObject(_response));
+                return _response;
             }
             catch (Exception ex)
             {
@@ -109,7 +87,7 @@ namespace sampleFactCsharp
         private void ProcessLaunchRequest(ResponseBody response)
         {
             IOutputSpeech innerResponse = new SsmlOutputSpeech();
-            (innerResponse as SsmlOutputSpeech).Ssml = SsmlDecorate("Bienvenido al ejemplo de skills de animales");
+            (innerResponse as SsmlOutputSpeech).Ssml = SsmlDecorate("Bienvenido al ejemplo de skill de animales");
             response.OutputSpeech = innerResponse;
             IOutputSpeech prompt = new PlainTextOutputSpeech();
             (prompt as PlainTextOutputSpeech).Text = "Bienvenido otra vez al ejemplo de skill de animales";
@@ -239,12 +217,12 @@ namespace sampleFactCsharp
                     break;
                 case AlexaConstants.CancelIntent:
                     (innerResponse as PlainTextOutputSpeech).Text = "cancelando";
-                    response.Response.ShouldEndSession = true;
+                    _response.Response.ShouldEndSession = true;
                     break;
 
                 case AlexaConstants.StopIntent:
                     (innerResponse as PlainTextOutputSpeech).Text = "parando";
-                    response.Response.ShouldEndSession = true;                    
+                    _response.Response.ShouldEndSession = true;                    
                     break;
 
                 case AlexaConstants.HelpIntent:
@@ -274,7 +252,7 @@ namespace sampleFactCsharp
             if (!string.IsNullOrEmpty(output))
             {                
                 output = Regex.Replace(output, @"<.*?>", "");
-                response.Response.Card = new SimpleCard()
+                _response.Response.Card = new SimpleCard()
                 {
                     Title = title,
                     Content = output,
@@ -293,9 +271,8 @@ namespace sampleFactCsharp
             {
                 Type = AlexaConstants.DialogDelegate
             };
-            response.Response.Directives.Add(dld);
+            _response.Response.Directives.Add(dld);
         }
-
 
         /// <summary>
         /// logger interface
@@ -304,9 +281,9 @@ namespace sampleFactCsharp
         /// <returns>void</returns>
         private void Log(string text)
         {
-            if (context != null)
+            if (_context != null)
             {
-                context.Logger.LogLine(text);
+                _context.Logger.LogLine(text);
             }
         }
     }
