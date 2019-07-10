@@ -51,7 +51,7 @@ namespace sampleFactCsharp
                 {
                     if (input.Request.Type.Equals(AlexaConstants.IntentRequest))
                     {
-                       _response.SessionAttributes = new Dictionary<string, object>() {{LOCALENAME, ESMX_Locale}};
+                        _response.SessionAttributes = new Dictionary<string, object>() {{LOCALENAME, ESMX_Locale}};
                        if (IsDialogIntentRequest(input))
                        {
                             if (!IsDialogSequenceComplete(input))
@@ -59,7 +59,11 @@ namespace sampleFactCsharp
                                 CreateDelegateResponse();
                                 return _response;
                             }
-                       }
+                            else // dialog completed
+                            {
+                                _response.Response.OutputSpeech = ProcessIntentRequest(input);
+                            }
+                        }
 
                        if (!ProcessDialogRequest(input, _response))
                        {
@@ -214,6 +218,10 @@ namespace sampleFactCsharp
                 case "AnimalFactIntent":
                     innerResponse = new SsmlOutputSpeech();
                     (innerResponse as SsmlOutputSpeech).Ssml = $"los {intentRequest.Intent.Slots["animal"].Value} son buenos";
+                    break;
+                case "TripPlannerIntent":
+                    innerResponse = new SsmlOutputSpeech();
+                    (innerResponse as SsmlOutputSpeech).Ssml = $"su viaje de {intentRequest.Intent.Slots["tripFrom"].Value} a {intentRequest.Intent.Slots["tripTo"].Value} ha sido confirmado";
                     break;
                 case AlexaConstants.CancelIntent:
                     (innerResponse as PlainTextOutputSpeech).Text = "cancelando";
