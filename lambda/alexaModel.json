@@ -1,0 +1,194 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "ejemplo animal",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AnimalFactIntent",
+          "slots": [
+            {
+              "name": "animal",
+              "type": "animal"
+            }
+          ],
+          "samples": [
+            "algún dato interesante sobre {animal}",
+            "contame algo de los {animal}",
+            "quiero conocer algo de {animal}"
+          ]
+        },
+        {
+          "name": "TripPlannerIntent",
+          "slots": [
+            {
+              "name": "tripFrom",
+              "type": "tripFrom",
+              "samples": [
+                "salgo de {tripFrom}",
+                "{tripFrom}",
+                "viajo desde {tripFrom}"
+              ]
+            },
+            {
+              "name": "tripTo",
+              "type": "tripTo",
+              "samples": [
+                "viajo a {tripTo}",
+                "{tripTo}",
+                "viajo hacia {tripTo}"
+              ]
+            }
+          ],
+          "samples": [
+            "tengo que hacer un viaje",
+            "quiero hacer un viaje"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "animal",
+          "values": [
+            {
+              "name": {
+                "value": "gatos"
+              }
+            },
+            {
+              "name": {
+                "value": "perros"
+              }
+            }
+          ]
+        },
+        {
+          "name": "tripFrom",
+          "values": [
+            {
+              "name": {
+                "value": "bahia blanca"
+              }
+            },
+            {
+              "name": {
+                "value": "mendoza"
+              }
+            },
+            {
+              "name": {
+                "value": "rosario"
+              }
+            },
+            {
+              "name": {
+                "value": "buenos aires"
+              }
+            }
+          ]
+        },
+        {
+          "name": "tripTo",
+          "values": [
+            {
+              "name": {
+                "value": "mendoza"
+              }
+            },
+            {
+              "name": {
+                "value": "rosario"
+              }
+            },
+            {
+              "name": {
+                "value": "bahía blanca"
+              }
+            },
+            {
+              "name": {
+                "value": "buenos aires"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "TripPlannerIntent",
+          "confirmationRequired": true,
+          "prompts": {
+            "confirmation": "Confirm.Intent.1402949371254"
+          },
+          "slots": [
+            {
+              "name": "tripFrom",
+              "type": "tripFrom",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.1402949371254.292669608173"
+              }
+            },
+            {
+              "name": "tripTo",
+              "type": "tripTo",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.1402949371254.283721005160"
+              }
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "ALWAYS"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.1402949371254.292669608173",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿desde donde viaja?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.1402949371254.283721005160",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿hacia donde viaja?"
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Intent.1402949371254",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿desea entonces realizar un viaje de {tripFrom} a {tripTo} ?"
+          }
+        ]
+      }
+    ]
+  }
+}
