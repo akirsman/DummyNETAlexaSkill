@@ -6,6 +6,8 @@ using AlexaAPI;
 using AlexaAPI.Request;
 using AlexaAPI.Response;
 using System.Text.RegularExpressions;
+using AWS.Helper;
+using System.Threading.Tasks;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializerAttribute(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
@@ -25,7 +27,7 @@ namespace sampleFactCsharp
         /// <param name="input"></param>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        public SkillResponse FunctionHandler(SkillRequest input, ILambdaContext ctx)
+        public async Task<SkillResponse> FunctionHandler(SkillRequest input, ILambdaContext ctx)
         {
             _context = ctx;
             Log("Input object:" + JsonConvert.SerializeObject(input));
@@ -45,15 +47,15 @@ namespace sampleFactCsharp
                     }
 
                     ProcessLaunchRequest(_response.Response);
-                    _response.SessionAttributes = new Dictionary<string, object>() {{LOCALENAME, locale}};
+                    _response.SessionAttributes = new Dictionary<string, object>() { { LOCALENAME, locale } };
                 }
                 else
                 {
                     if (input.Request.Type.Equals(AlexaConstants.IntentRequest))
                     {
-                        _response.SessionAttributes = new Dictionary<string, object>() {{LOCALENAME, ESMX_Locale}};
-                       if (IsDialogIntentRequest(input))
-                       {
+                        _response.SessionAttributes = new Dictionary<string, object>() { { LOCALENAME, ESMX_Locale } };
+                        if (IsDialogIntentRequest(input))
+                        {
                             if (!IsDialogSequenceComplete(input))
                             { // delegate to Alexa until dialog is complete
                                 CreateDelegateResponse();
@@ -61,14 +63,14 @@ namespace sampleFactCsharp
                             }
                             else // dialog completed
                             {
-                                _response.Response.OutputSpeech = ProcessIntentRequest(input);
+                                _response.Response.OutputSpeech = await ProcessIntentRequest(input);
                             }
                         }
 
-                       if (!ProcessDialogRequest(input, _response))
-                       {
-                           _response.Response.OutputSpeech = ProcessIntentRequest(input);
-                       }
+                        if (!ProcessDialogRequest(input, _response))
+                        {
+                            _response.Response.OutputSpeech = await ProcessIntentRequest(input);
+                        }
                     }
                 }
                 Log(JsonConvert.SerializeObject(_response));
@@ -78,7 +80,7 @@ namespace sampleFactCsharp
             {
                 Log($"error :" + ex.Message);
             }
-            return null; 
+            return null;
         }
 
         /// <summary>
@@ -91,10 +93,10 @@ namespace sampleFactCsharp
         private void ProcessLaunchRequest(ResponseBody response)
         {
             IOutputSpeech innerResponse = new SsmlOutputSpeech();
-            (innerResponse as SsmlOutputSpeech).Ssml = SsmlDecorate("Bienvenido al ejemplo de skill de animales");
+            (innerResponse as SsmlOutputSpeech).Ssml = SsmlDecorate("Bienvenido al ejemplo de Alexa para Pampa");
             response.OutputSpeech = innerResponse;
             IOutputSpeech prompt = new PlainTextOutputSpeech();
-            (prompt as PlainTextOutputSpeech).Text = "Bienvenido otra vez al ejemplo de skill de animales";
+            (prompt as PlainTextOutputSpeech).Text = "Bienvenido otra vez al ejemplo de Alexa para Pampa";
             response.Reprompt = new Reprompt()
             {
                 OutputSpeech = prompt
@@ -122,8 +124,8 @@ namespace sampleFactCsharp
         {
             if (input.Request.DialogState.Equals(AlexaConstants.DialogStarted)
                || input.Request.DialogState.Equals(AlexaConstants.DialogInProgress))
-            { 
-                return false ;
+            {
+                return false;
             }
             else
             {
@@ -208,11 +210,11 @@ namespace sampleFactCsharp
         /// <param name="factdata"></param>
         /// <param name="input"></param>
         /// <returns>IOutputSpeech innerResponse</returns>
-        private IOutputSpeech ProcessIntentRequest(SkillRequest input)
+        private async Task<IOutputSpeech> ProcessIntentRequest(SkillRequest input)
         {
             var intentRequest = input.Request;
             IOutputSpeech innerResponse = new PlainTextOutputSpeech();
-            
+
             switch (intentRequest.Intent.Name)
             {
                 case "AnimalFactIntent":
@@ -220,32 +222,35 @@ namespace sampleFactCsharp
                     (innerResponse as SsmlOutputSpeech).Ssml = $"los {intentRequest.Intent.Slots["animal"].Value} son buenos";
                     break;
                 case "TripPlannerIntent":
+                    var message = $"su viaje de {intentRequest.Intent.Slots["tripFrom"].Value} a {intentRequest.Intent.Slots["tripTo"].Value} ha sido confirmado";
+                    string topicArn = "arn:aws:sns:us-east-1:209615642202:NotifyMe";
+                    await SNSHelper.SNSPublishMessage(topicArn, message);
                     innerResponse = new SsmlOutputSpeech();
-                    (innerResponse as SsmlOutputSpeech).Ssml = $"su viaje de {intentRequest.Intent.Slots["tripFrom"].Value} a {intentRequest.Intent.Slots["tripTo"].Value} ha sido confirmado";
+                    (innerResponse as SsmlOutputSpeech).Ssml = message;
+                    Log("message published to topic");
                     break;
                 case AlexaConstants.CancelIntent:
                     (innerResponse as PlainTextOutputSpeech).Text = "cancelando";
                     _response.Response.ShouldEndSession = true;
                     break;
-
                 case AlexaConstants.StopIntent:
                     (innerResponse as PlainTextOutputSpeech).Text = "parando";
-                    _response.Response.ShouldEndSession = true;                    
+                    _response.Response.ShouldEndSession = true;
                     break;
 
                 case AlexaConstants.HelpIntent:
-                    (innerResponse as PlainTextOutputSpeech).Text = "Este es un ejemplo de skill de Alexa que nos cuenta datos de animales"; 
+                    (innerResponse as PlainTextOutputSpeech).Text = "Este es un ejemplo de skill de Alexa que nos cuenta datos de animales";
                     break;
 
                 default:
-                    (innerResponse as PlainTextOutputSpeech).Text = "Este es un ejemplo de skill de Alexa que nos cuenta datos de animales"; 
+                    (innerResponse as PlainTextOutputSpeech).Text = "Este es un ejemplo de skill de Alexa que nos cuenta datos de animales";
                     break;
             }
             if (innerResponse.Type == AlexaConstants.SSMLSpeech)
             {
                 BuildCard("Animal", (innerResponse as SsmlOutputSpeech).Ssml);
                 (innerResponse as SsmlOutputSpeech).Ssml = SsmlDecorate((innerResponse as SsmlOutputSpeech).Ssml);
-            }  
+            }
             return innerResponse;
         }
 
@@ -258,15 +263,15 @@ namespace sampleFactCsharp
         private void BuildCard(string title, string output)
         {
             if (!string.IsNullOrEmpty(output))
-            {                
+            {
                 output = Regex.Replace(output, @"<.*?>", "");
                 _response.Response.Card = new SimpleCard()
                 {
                     Title = title,
                     Content = output,
-                };  
+                };
             }
-        }               
+        }
 
         /// <summary>
         ///  create a delegate response, we delegate all the dialog requests
